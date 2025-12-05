@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "598305507976",
+    "firebase_url": "https://webrtcwithai-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "webrtcwithai",
+    "storage_bucket": "webrtcwithai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598305507976:android:38cb5f9247a592d8a3ad3d",
+        "android_client_info": {
+          "package_name": "com.codewithkael.webrtcwithai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-IZJcoUW2lPr_VbqJPBsLZo_nGV4rfP4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
