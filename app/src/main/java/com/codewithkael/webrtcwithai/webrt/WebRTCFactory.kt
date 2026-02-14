@@ -42,7 +42,8 @@ import org.webrtc.VideoTrack
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import androidx.core.graphics.scale
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @Singleton
 class WebRTCFactory @Inject constructor(
@@ -176,7 +177,13 @@ class WebRTCFactory @Inject constructor(
 
                         processed = detectFaceInBitmapAwait(processed)
                         processed = blurSegmentationAwait(processed)
-                        processed = drawWatermarkCenter(processed, appLogoBitmap)
+                        processed = drawWatermark(
+                            frame = processed,
+                            watermark = appLogoBitmap,
+                            location = WatermarkLocation.BOTTOM_LEFT,
+                            marginPx = 40f,
+                            sizeFraction = 0.3f
+                        )
 
 
                         val videoFrame =
@@ -255,101 +262,163 @@ class WebRTCFactory @Inject constructor(
         )
     }
 
-    suspend fun detectFaceInBitmapAwait(bitmap: Bitmap): Bitmap = suspendCoroutine { cont ->
+    suspend fun detectFaceInBitmapAwait(bitmap: Bitmap): Bitmap =
+        suspendCancellableCoroutine { cont ->
 
-        val inputImage = InputImage.fromBitmap(bitmap, 0)
+            val inputImage = InputImage.fromBitmap(bitmap, 0)
 
-        faceDetector.process(inputImage).addOnSuccessListener { faces ->
+            faceDetector.process(inputImage).addOnSuccessListener { faces ->
 
-            if (faces.isEmpty()) {
+                if (faces.isEmpty()) {
+                    cont.resume(bitmap)
+                    return@addOnSuccessListener
+                }
+
+                val annotated = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                val canvas = Canvas(annotated)
+
+                val paint = Paint().apply {
+                    color = Color.RED
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    isAntiAlias = true
+                }
+
+                for (face in faces) {
+                    val box = face.boundingBox
+                    val ovalRect = RectF(
+                        box.left.toFloat(),
+                        box.top.toFloat(),
+                        box.right.toFloat(),
+                        box.bottom.toFloat()
+                    )
+                    canvas.drawOval(ovalRect, paint)
+                }
+
+                cont.resume(annotated)
+            }.addOnFailureListener {
                 cont.resume(bitmap)
-                return@addOnSuccessListener
             }
-
-            val annotated = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-            val canvas = Canvas(annotated)
-
-            val paint = Paint().apply {
-                color = Color.RED
-                style = Paint.Style.STROKE
-                strokeWidth = 4f
-                isAntiAlias = true
-            }
-
-            for (face in faces) {
-                val box = face.boundingBox
-                val ovalRect = RectF(
-                    box.left.toFloat(), box.top.toFloat(), box.right.toFloat(), box.bottom.toFloat()
-                )
-                canvas.drawOval(ovalRect, paint)
-            }
-
-            cont.resume(annotated)
-        }.addOnFailureListener {
-            cont.resume(bitmap)
         }
-    }
 
 
-    suspend fun blurSegmentationAwait(bitmap: Bitmap): Bitmap = suspendCoroutine { cont ->
+    suspend fun blurSegmentationAwait(bitmap: Bitmap): Bitmap =
+        suspendCancellableCoroutine { cont ->
 
-        val image = InputImage.fromBitmap(bitmap, 0)
+            val image = InputImage.fromBitmap(bitmap, 0)
 
-        selfieSegmenter.process(image).addOnSuccessListener { mask ->
+            selfieSegmenter.process(image).addOnSuccessListener { mask ->
 
-            val width = bitmap.width
-            val height = bitmap.height
+                val width = bitmap.width
+                val height = bitmap.height
 
-            val maskBuffer = mask.buffer
-            maskBuffer.rewind()
+                val maskBuffer = mask.buffer
+                maskBuffer.rewind()
 
-            val blurred =
-                HokoBlur.with(application).scheme(HokoBlur.SCHEME_NATIVE).mode(HokoBlur.MODE_BOX)
-                    .radius(width / 32).sampleFactor(2f).forceCopy(true).blur(bitmap)
+                val blurred =
+                    HokoBlur.with(application).scheme(HokoBlur.SCHEME_NATIVE)
+                        .mode(HokoBlur.MODE_BOX)
+                        .radius(width / 32).sampleFactor(2f).forceCopy(true).blur(bitmap)
 
-            val output = createBitmap(width, height)
+                val output = createBitmap(width, height)
 
-            val total = width * height
-            val maskArray = FloatArray(total)
-            val finalPixels = IntArray(total)
+                val total = width * height
+                val maskArray = FloatArray(total)
+                val finalPixels = IntArray(total)
 
-            maskBuffer.asFloatBuffer().get(maskArray)
+                maskBuffer.asFloatBuffer().get(maskArray)
 
-            val origPix = IntArray(total)
-            val blurPix = IntArray(total)
+                val origPix = IntArray(total)
+                val blurPix = IntArray(total)
 
-            bitmap.getPixels(origPix, 0, width, 0, 0, width, height)
-            blurred.getPixels(blurPix, 0, width, 0, 0, width, height)
+                bitmap.getPixels(origPix, 0, width, 0, 0, width, height)
+                blurred.getPixels(blurPix, 0, width, 0, 0, width, height)
 
-            for (i in 0 until total) {
-                val c = maskArray[i]
-                finalPixels[i] = if (c > 0.6f) origPix[i] else blurPix[i]
+                for (i in 0 until total) {
+                    val c = maskArray[i]
+                    finalPixels[i] = if (c > 0.6f) origPix[i] else blurPix[i]
+                }
+
+                output.setPixels(finalPixels, 0, width, 0, 0, width, height)
+                cont.resume(output)
+            }.addOnFailureListener { _ ->
+                cont.resume(bitmap)
             }
-
-            output.setPixels(finalPixels, 0, width, 0, 0, width, height)
-            cont.resume(output)
-        }.addOnFailureListener { e ->
-            cont.resume(bitmap)
         }
-    }
 
-    fun drawWatermarkCenter(
+    fun drawWatermark(
         frame: Bitmap,
-        watermark: Bitmap?
+        watermark: Bitmap?,
+        location: WatermarkLocation,
+        marginPx: Float = 0f,        // distance from edges; for CENTER this becomes "drop down"
+        sizeFraction: Float = 0.10f  // 0.10f => fits inside 10% of frame width & 10% of frame height
     ): Bitmap {
-
         if (watermark == null) return frame
+
+        val clampedSize = sizeFraction.coerceIn(0.01f, 1.0f)
+
+        // Target bounding box for watermark
+        val targetW = (frame.width * clampedSize).toInt().coerceAtLeast(1)
+        val targetH = (frame.height * clampedSize).toInt().coerceAtLeast(1)
+
+        // Scale watermark to FIT inside targetW x targetH (keeps aspect ratio)
+        val scale = minOf(
+            targetW.toFloat() / watermark.width.toFloat(),
+            targetH.toFloat() / watermark.height.toFloat()
+        )
+
+        val scaledW = (watermark.width * scale).toInt().coerceAtLeast(1)
+        val scaledH = (watermark.height * scale).toInt().coerceAtLeast(1)
+
+        val scaledWatermark =
+            if (scaledW == watermark.width && scaledH == watermark.height) watermark
+            else watermark.scale(scaledW, scaledH)
 
         val output = frame.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(output)
 
-        // calculate center position
-        val left = (frame.width - watermark.width) / 2f
-        val top = (frame.height - watermark.height) / 2f
+        val left: Float
+        val top: Float
 
-        canvas.drawBitmap(watermark, left, top, null)
+        when (location) {
+            WatermarkLocation.TOP_LEFT -> {
+                left = marginPx
+                top = marginPx
+            }
+            WatermarkLocation.TOP_RIGHT -> {
+                left = frame.width - scaledW - marginPx
+                top = marginPx
+            }
+            WatermarkLocation.BOTTOM_LEFT -> {
+                left = marginPx
+                top = frame.height - scaledH - marginPx
+            }
+            WatermarkLocation.BOTTOM_RIGHT -> {
+                left = frame.width - scaledW - marginPx
+                top = frame.height - scaledH - marginPx
+            }
+            WatermarkLocation.CENTER -> {
+                left = (frame.width - scaledW) / 2f
+                // "drop" the center watermark down by marginPx
+                top = (frame.height - scaledH) / 2f + marginPx
+            }
+        }
 
+        // Clamp so it never draws outside the frame
+        val safeLeft = left.coerceIn(0f, (frame.width - scaledW).toFloat())
+        val safeTop = top.coerceIn(0f, (frame.height - scaledH).toFloat())
+
+        canvas.drawBitmap(scaledWatermark, safeLeft, safeTop, null)
         return output
+    }
+
+
+    enum class WatermarkLocation {
+        TOP_LEFT,
+        TOP_RIGHT,
+        CENTER,
+        BOTTOM_LEFT,
+        BOTTOM_RIGHT
     }
 
 

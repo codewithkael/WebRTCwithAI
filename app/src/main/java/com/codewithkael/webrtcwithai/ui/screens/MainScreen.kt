@@ -15,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -101,73 +103,55 @@ fun MainScreen() {
             }
         }
 
-        if (callState.value){
-            Row(
+        if (callState.value)if (callState.value) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(2.5f)
                     .padding(8.dp)
-                    .weight(2.5f),
-                horizontalArrangement = Arrangement.Center
+                    .background(Color.Black, RoundedCornerShape(12.dp))
             ) {
-                Column(
+                // Remote video as full background
+                SurfaceViewRendererComposable(
+                    modifier = Modifier.fillMaxSize(),
+                    onSurfaceReady = { renderer ->
+                        viewModel.initRemoteSurfaceView(renderer)
+                    }
+                )
+
+                // Local video as Picture-in-Picture (bottom-right)
+                val pipWidthFraction = 0.22f // ~1/5 of screen width (recommended range: 0.20–0.28)
+                SurfaceViewRendererComposable(
                     modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-
-                    // Remote Video
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .background(Color.White, RoundedCornerShape(12.dp))
-                            .padding(6.dp)
-                    ) {
-                        Text(
-                            text = "Remote",
-                            modifier = Modifier.padding(4.dp),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.DarkGray
-                        )
-
-                        SurfaceViewRendererComposable(
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            onSurfaceReady = { renderer ->
-                                viewModel.initRemoteSurfaceView(renderer)
-                            }
-                        )
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .fillMaxWidth(pipWidthFraction)
+                        // Keep a stable PiP shape (recommended). Choose ONE:
+                        .aspectRatio(3f / 4f)   // common for front camera portrait preview
+                        // .aspectRatio(16f / 9f) // if you want landscape PiP
+                        .shadow(12.dp, RoundedCornerShape(14.dp))
+                        .background(Color.Black, RoundedCornerShape(14.dp))
+                        .padding(2.dp)
+                        .background(Color.Black, RoundedCornerShape(12.dp)),
+                    onSurfaceReady = { renderer ->
+                        viewModel.startLocalStream(renderer)
                     }
+                )
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Local Video
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .background(Color.White, RoundedCornerShape(12.dp))
-                            .padding(6.dp)
-                    ) {
-                        Text(
-                            text = "Local",
-                            modifier = Modifier.padding(4.dp),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.DarkGray
-                        )
-
-                        if (callState.value) {
-                            SurfaceViewRendererComposable(
-                                modifier = Modifier.fillMaxSize(),
-                                onSurfaceReady = { renderer ->
-                                    viewModel.startLocalStream(renderer)
-                                }
-                            )
-                        }
-                    }
-                }
+                 Box(
+                     modifier = Modifier
+                         .fillMaxWidth()
+                         .height(120.dp)
+                         .align(Alignment.BottomCenter)
+                         .background(
+                             brush = Brush.verticalGradient(
+                                 listOf(Color.Transparent, Color(0xAA000000))
+                             )
+                         )
+                 )
             }
-
         }
+
 
         // Footer
         Row(
