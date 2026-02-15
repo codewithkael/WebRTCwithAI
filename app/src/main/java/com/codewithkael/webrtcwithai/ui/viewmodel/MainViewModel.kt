@@ -211,6 +211,14 @@ class MainViewModel @Inject constructor(
         webRTCFactory.initSurfaceView(remoteSurface)
     }
 
+    fun reloadWatermark() {
+        webRTCFactory.reloadWatermarkConfig()
+    }
+    fun reloadFilters() {
+        webRTCFactory.reloadFiltersConfig()
+    }
+
+
     override fun onCleared() {
         super.onCleared()
         remoteSurface?.release()

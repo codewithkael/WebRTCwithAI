@@ -107,16 +107,51 @@ class WebRTCFactory @Inject constructor(
     private var localAudioTrack: AudioTrack? = null
     private var localVideoTrack: VideoTrack? = null
     private var appLogoBitmap: Bitmap? = null
+    private var watermarkLocation: WatermarkLocation = WatermarkLocation.BOTTOM_LEFT
+    private var watermarkMarginDp: Float = 12f
+    private var watermarkSizeFraction: Float = 0.20f
+    private var filterFaceDetect: Boolean = false
+    private var filterBlurBackground: Boolean = false
+    private var filterWatermark: Boolean = false
+
 
     init {
         initPeerConnectionFactory(application)
-        loadDefaultWatermark()
+        reloadWatermarkConfig()
+        reloadFiltersConfig()
     }
-    fun loadDefaultWatermark() {
-        appLogoBitmap = BitmapFactory.decodeResource(
-            application.resources, R.drawable.youtube_logo
-        )
+
+    fun reloadWatermarkConfig() {
+        val cfg = com.codewithkael.webrtcwithai.utils.WatermarkStorage.load(application)
+
+        watermarkLocation = cfg.location
+        watermarkMarginDp = cfg.marginDp
+        watermarkSizeFraction = cfg.sizeFraction
+
+        // load bitmap from persisted uri if exists; fallback to default resource
+        val uriStr = cfg.uri
+        if (uriStr.isNullOrBlank()) {
+            appLogoBitmap = BitmapFactory.decodeResource(application.resources, R.drawable.youtube_logo)
+            return
+        }
+
+        val uri = android.net.Uri.parse(uriStr)
+        val bmp = runCatching {
+            application.contentResolver.openInputStream(uri).use { input ->
+                if (input != null) BitmapFactory.decodeStream(input) else null
+            }
+        }.getOrNull()
+
+        appLogoBitmap = bmp ?: BitmapFactory.decodeResource(application.resources, R.drawable.youtube_logo)
     }
+
+    fun reloadFiltersConfig() {
+        val cfg = com.codewithkael.webrtcwithai.utils.FilterStorage.load(application)
+        filterFaceDetect = cfg.faceDetect
+        filterBlurBackground = cfg.blurBackground
+        filterWatermark = cfg.watermark
+    }
+
 
     fun prepareLocalStream(
         view: SurfaceViewRenderer,
@@ -175,15 +210,27 @@ class WebRTCFactory @Inject constructor(
 
                         var processed = bitmap
 
-                        processed = detectFaceInBitmapAwait(processed)
-                        processed = blurSegmentationAwait(processed)
-                        processed = drawWatermark(
-                            frame = processed,
-                            watermark = appLogoBitmap,
-                            location = WatermarkLocation.BOTTOM_LEFT,
-                            marginPx = 40f,
-                            sizeFraction = 0.3f
-                        )
+                        if (filterFaceDetect) {
+                            processed = detectFaceInBitmapAwait(processed)
+                        }
+
+                        if (filterBlurBackground) {
+                            processed = blurSegmentationAwait(processed)
+                        }
+
+                        if (filterWatermark) {
+                            val density = application.resources.displayMetrics.density
+                            val marginPx = watermarkMarginDp * density
+
+                            processed = drawWatermark(
+                                frame = processed,
+                                watermark = appLogoBitmap,
+                                location = watermarkLocation,
+                                marginPx = marginPx,
+                                sizeFraction = watermarkSizeFraction
+                            )
+                        }
+
 
 
                         val videoFrame =

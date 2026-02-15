@@ -9,10 +9,40 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -24,11 +54,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.codewithkael.webrtcwithai.R
+import com.codewithkael.webrtcwithai.ui.components.FilterTile
+import com.codewithkael.webrtcwithai.ui.components.LocationPicker
 import com.codewithkael.webrtcwithai.ui.components.SurfaceViewRendererComposable
 import com.codewithkael.webrtcwithai.ui.viewmodel.MainViewModel
 import com.codewithkael.webrtcwithai.utils.MyApplication
+import com.codewithkael.webrtcwithai.utils.WatermarkStorage
+import com.codewithkael.webrtcwithai.webrt.WebRTCFactory.WatermarkLocation
+
 
 @Composable
 fun MainScreen() {
@@ -36,13 +72,43 @@ fun MainScreen() {
     val callState = viewModel.callState.collectAsState()
     val context = LocalContext.current
     var callId by remember { mutableStateOf("") }
+    var menuExpanded by remember { mutableStateOf(false) }
+    var showWmDialog by remember { mutableStateOf(false) }
+    val initialCfg = remember { WatermarkStorage.load(context) }
+    var wmUri by remember { mutableStateOf(initialCfg.uri?.let(Uri::parse)) }
+    var wmLocation by remember { mutableStateOf(initialCfg.location) }
+    var wmMarginDp by remember { mutableFloatStateOf(initialCfg.marginDp) }
+    var wmSizeFraction by remember { mutableFloatStateOf(initialCfg.sizeFraction) }
+
+    val pickWmLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            // Persist permission so WebRTCFactory can open it later
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            wmUri = uri
+        }
+    }
+
+    var showFiltersDialog by remember { mutableStateOf(false) }
+
+    val initialFilters =
+        remember { com.codewithkael.webrtcwithai.utils.FilterStorage.load(context) }
+    var fltFace by remember { mutableStateOf(initialFilters.faceDetect) }
+    var fltBlur by remember { mutableStateOf(initialFilters.blurBackground) }
+    var fltWatermark by remember { mutableStateOf(initialFilters.watermark) }
+
 
     // Permissions
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (!permissions.all { it.value }) {
-            Toast.makeText(context, "Camera and Microphone permissions are required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context, "Camera and Microphone permissions are required", Toast.LENGTH_SHORT
+            ).show()
         } else {
             viewModel.permissionsGranted()
         }
@@ -51,8 +117,7 @@ fun MainScreen() {
     LaunchedEffect(Unit) {
         requestPermissionLauncher.launch(
             arrayOf(
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA
+                Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA
             )
         )
     }
@@ -63,17 +128,46 @@ fun MainScreen() {
             .background(Color(0xFFEAEAEA))
             .padding(top = 28.dp)
     ) {
-        // Top User ID Display
-        Text(
-            text = "Your ID: ${MyApplication.UserID}",
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            textAlign = TextAlign.Center,
-            color = Color.Black,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleMedium
-        )
+                .padding(vertical = 12.dp, horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Your ID: ${MyApplication.UserID}",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = "Options")
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(text = { Text("Watermark settings") }, onClick = {
+                        menuExpanded = false
+                        showWmDialog = true
+                    })
+                    DropdownMenuItem(text = { Text("Filters") }, onClick = {
+                        menuExpanded = false
+                        // refresh initial states each time you open
+                        val cfg = com.codewithkael.webrtcwithai.utils.FilterStorage.load(context)
+                        fltFace = cfg.faceDetect
+                        fltBlur = cfg.blurBackground
+                        fltWatermark = cfg.watermark
+                        showFiltersDialog = true
+                    })
+
+                }
+            }
+        }
+
 
         // Input layout + call button
         Row(
@@ -103,7 +197,7 @@ fun MainScreen() {
             }
         }
 
-        if (callState.value)if (callState.value) {
+        if (callState.value) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,11 +207,9 @@ fun MainScreen() {
             ) {
                 // Remote video as full background
                 SurfaceViewRendererComposable(
-                    modifier = Modifier.fillMaxSize(),
-                    onSurfaceReady = { renderer ->
+                    modifier = Modifier.fillMaxSize(), onSurfaceReady = { renderer ->
                         viewModel.initRemoteSurfaceView(renderer)
-                    }
-                )
+                    })
 
                 // Local video as Picture-in-Picture (bottom-right)
                 val pipWidthFraction = 0.22f // ~1/5 of screen width (recommended range: 0.20–0.28)
@@ -135,21 +227,126 @@ fun MainScreen() {
                         .background(Color.Black, RoundedCornerShape(12.dp)),
                     onSurfaceReady = { renderer ->
                         viewModel.startLocalStream(renderer)
-                    }
-                )
+                    })
 
-                 Box(
-                     modifier = Modifier
-                         .fillMaxWidth()
-                         .height(120.dp)
-                         .align(Alignment.BottomCenter)
-                         .background(
-                             brush = Brush.verticalGradient(
-                                 listOf(Color.Transparent, Color(0xAA000000))
-                             )
-                         )
-                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                listOf(Color.Transparent, Color(0xAA000000))
+                            )
+                        )
+                )
             }
+        }
+        if (showWmDialog) {
+            AlertDialog(
+                onDismissRequest = { showWmDialog = false },
+                title = { Text("Watermark") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(
+                            onClick = { pickWmLauncher.launch(arrayOf("image/png", "image/jpeg")) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Select PNG/JPG") }
+
+                        // Location
+                        Text("Location")
+                        LocationPicker(
+                            value = wmLocation, onChange = { wmLocation = it })
+
+                        // Size
+                        Text("Size: ${(wmSizeFraction * 100).toInt()}%")
+                        Slider(
+                            value = wmSizeFraction,
+                            onValueChange = { wmSizeFraction = it },
+                            valueRange = 0.05f..0.40f
+                        )
+
+                        // Margin
+                        Text(
+                            text = if (wmLocation == WatermarkLocation.CENTER) "Drop (dp): ${wmMarginDp.toInt()}"
+                            else "Margin (dp): ${wmMarginDp.toInt()}"
+                        )
+                        Slider(
+                            value = wmMarginDp,
+                            onValueChange = { wmMarginDp = it },
+                            valueRange = 0f..64f
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        WatermarkStorage.save(
+                            context, WatermarkStorage.Config(
+                                uri = wmUri?.toString(),
+                                location = wmLocation,
+                                marginDp = wmMarginDp,
+                                sizeFraction = wmSizeFraction
+                            )
+                        )
+                        viewModel.reloadWatermark() // <-- this updates WebRTCFactory instantly
+                        showWmDialog = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showWmDialog = false }) { Text("Cancel") }
+                })
+        }
+        if (showFiltersDialog) {
+            AlertDialog(
+                onDismissRequest = { showFiltersDialog = false },
+                title = { Text("Filters") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                        FilterTile(
+                            title = "Face Detect",
+                            subtitle = "Draw face oval (ML Kit)",
+                            checked = fltFace,
+                            // Use any images you want here
+                            imageRes = R.drawable.ic_face_filter,
+                            onToggle = { fltFace = it }
+                        )
+
+                        FilterTile(
+                            title = "Background Blur",
+                            subtitle = "Blur background (segmentation)",
+                            checked = fltBlur,
+                            imageRes = R.drawable.ic_blur_filter,
+                            onToggle = { fltBlur = it }
+                        )
+
+                        FilterTile(
+                            title = "Watermark",
+                            subtitle = "Show watermark on camera",
+                            checked = fltWatermark,
+                            imageRes = R.drawable.ic_watermark_filter,
+                            onToggle = { fltWatermark = it }
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        com.codewithkael.webrtcwithai.utils.FilterStorage.save(
+                            context,
+                            com.codewithkael.webrtcwithai.utils.FilterStorage.Config(
+                                faceDetect = fltFace,
+                                blurBackground = fltBlur,
+                                watermark = fltWatermark
+                            )
+                        )
+                        viewModel.reloadFilters()     // apply instantly
+                        showFiltersDialog = false
+                    }) { Text("OK") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showFiltersDialog = false }) { Text("Cancel") }
+                }
+            )
         }
 
 
@@ -160,13 +357,14 @@ fun MainScreen() {
                 .weight(0.6f)
                 .padding(bottom = 15.dp, start = 5.dp, end = 5.dp)
                 .clickable {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/@codewithkael"))
+                    val intent = Intent(
+                        Intent.ACTION_VIEW, "https://www.youtube.com/@codewithkael".toUri()
+                    )
                     context.startActivity(intent)
                 }
                 .background(color = Color(0xA4D6DFE5), shape = RoundedCornerShape(8.dp)),
             horizontalArrangement = Arrangement.Absolute.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(id = R.drawable.youtube_logo),
                 contentDescription = "YouTube Channel",
