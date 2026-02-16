@@ -1,4 +1,4 @@
-package com.codewithkael.simplecall.newUtils
+package com.codewithkael.webrtcwithai.utils.helpers
 
 import android.graphics.Matrix;
 import android.graphics.Bitmap

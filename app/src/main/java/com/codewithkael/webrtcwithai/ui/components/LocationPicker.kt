@@ -7,7 +7,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import com.codewithkael.webrtcwithai.webrt.WebRTCFactory.*
+import com.codewithkael.webrtcwithai.utils.imageProcessor.WatermarkLocation
 
 @Composable
 fun LocationPicker(

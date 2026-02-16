@@ -1,8 +1,8 @@
-package com.codewithkael.webrtcwithai.utils
+package com.codewithkael.webrtcwithai.utils.persistence
 
 import android.content.Context
-import com.codewithkael.webrtcwithai.webrt.WebRTCFactory
 import androidx.core.content.edit
+import com.codewithkael.webrtcwithai.utils.imageProcessor.WatermarkLocation
 
 object WatermarkStorage {
     private const val PREF = "wm_pref"
@@ -13,7 +13,7 @@ object WatermarkStorage {
 
     data class Config(
         val uri: String?,
-        val location: WebRTCFactory.WatermarkLocation,
+        val location: WatermarkLocation,
         val marginDp: Float,
         val sizeFraction: Float
     )
@@ -21,9 +21,9 @@ object WatermarkStorage {
     fun load(ctx: Context): Config {
         val sp = ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
         val uri = sp.getString(KEY_URI, null)
-        val locStr = sp.getString(KEY_LOC, WebRTCFactory.WatermarkLocation.BOTTOM_LEFT.name)
-        val loc = runCatching { WebRTCFactory.WatermarkLocation.valueOf(locStr!!) }
-            .getOrDefault(WebRTCFactory.WatermarkLocation.BOTTOM_LEFT)
+        val locStr = sp.getString(KEY_LOC, WatermarkLocation.BOTTOM_LEFT.name)
+        val loc = runCatching { WatermarkLocation.valueOf(locStr!!) }
+            .getOrDefault(WatermarkLocation.BOTTOM_LEFT)
         val marginDp = sp.getFloat(KEY_MARGIN, 12f)
         val sizeFraction = sp.getFloat(KEY_SIZE, 0.20f)
         return Config(uri, loc, marginDp, sizeFraction)

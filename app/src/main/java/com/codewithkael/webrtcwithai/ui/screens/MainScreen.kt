@@ -61,10 +61,10 @@ import com.codewithkael.webrtcwithai.ui.components.FilterTile
 import com.codewithkael.webrtcwithai.ui.components.LocationPicker
 import com.codewithkael.webrtcwithai.ui.components.SurfaceViewRendererComposable
 import com.codewithkael.webrtcwithai.ui.viewmodel.MainViewModel
-import com.codewithkael.webrtcwithai.utils.FilterStorage
+import com.codewithkael.webrtcwithai.utils.persistence.FilterStorage
 import com.codewithkael.webrtcwithai.utils.MyApplication
-import com.codewithkael.webrtcwithai.utils.WatermarkStorage
-import com.codewithkael.webrtcwithai.webrt.WebRTCFactory.WatermarkLocation
+import com.codewithkael.webrtcwithai.utils.imageProcessor.WatermarkLocation
+import com.codewithkael.webrtcwithai.utils.persistence.WatermarkStorage
 
 
 @Composable

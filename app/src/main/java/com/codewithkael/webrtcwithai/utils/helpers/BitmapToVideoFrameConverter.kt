@@ -1,4 +1,4 @@
-package com.codewithkael.simplecall.newUtils
+package com.codewithkael.webrtcwithai.utils.helpers
 
 import android.graphics.Bitmap
 import org.webrtc.JavaI420Buffer
