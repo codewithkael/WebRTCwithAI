@@ -15,12 +15,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=RFCW70PZ81X" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=39180DLJG000KH" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\user\.android\avd\Pixel_9.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=RFCW70PZ81X" />
               </handle>
             </Target>
           </targets>

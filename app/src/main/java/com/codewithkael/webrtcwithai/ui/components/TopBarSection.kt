@@ -1,0 +1,59 @@
+package com.codewithkael.webrtcwithai.ui.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.codewithkael.webrtcwithai.utils.MyApplication
+
+@Composable
+fun TopBarSection(
+    modifier: Modifier = Modifier,
+    onOpenWatermark: () -> Unit,
+    onOpenFilters: () -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Your ID: ${MyApplication.UserID}",
+            modifier = Modifier.weight(1f),
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Box {
+            IconButton(onClick = { menuExpanded = true }) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "Options")
+            }
+
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Watermark settings") },
+                    onClick = {
+                        menuExpanded = false
+                        onOpenWatermark()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Filters") },
+                    onClick = {
+                        menuExpanded = false
+                        onOpenFilters()
+                    }
+                )
+            }
+        }
+    }
+}
