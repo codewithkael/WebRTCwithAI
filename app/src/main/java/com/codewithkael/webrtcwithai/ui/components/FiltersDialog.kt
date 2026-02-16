@@ -52,7 +52,6 @@ fun FiltersDialog(
                     imageRes = R.drawable.ic_face_filter,
                     onToggle = { enabled ->
                         state.faceMesh = enabled
-                        if (enabled) state.faceDetect = false // optional mutual exclusion
                     }
                 )
             }
