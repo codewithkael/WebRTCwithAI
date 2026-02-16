@@ -67,7 +67,13 @@ dependencies {
     implementation(files("libs/core-0.0.7.aar"))
     implementation(libs.hoko.blur)
     implementation(libs.segmentation.selfie)
-
+    implementation(libs.mlkit.face.mesh)
+    constraints {
+        implementation(libs.mlkit.common)
+        implementation(libs.mlkit.vision.common)
+        implementation(libs.mlkit.vision.interfaces)
+        implementation(libs.mlkit.mediapipe.internal)
+    }
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

@@ -43,7 +43,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import androidx.core.graphics.scale
+import com.codewithkael.webrtcwithai.utils.FilterStorage
 import kotlinx.coroutines.suspendCancellableCoroutine
+import com.google.mlkit.vision.facemesh.FaceMesh
+import com.google.mlkit.vision.facemesh.FaceMeshDetection
+import com.google.mlkit.vision.facemesh.FaceMeshDetector
+import com.google.mlkit.vision.facemesh.FaceMeshPoint
+import androidx.core.net.toUri
+
 
 @Singleton
 class WebRTCFactory @Inject constructor(
@@ -62,6 +69,47 @@ class WebRTCFactory @Inject constructor(
 //    private val iceServer = listOf<IceServer>(
 //        IceServer.builder("stun:stun.relay.metered.ca:80").createIceServer()
 //    )
+private val faceMeshDetector: FaceMeshDetector by lazy {
+    FaceMeshDetection.getClient()
+}
+
+    suspend fun detectFaceMeshInBitmapAwait(bitmap: Bitmap): Bitmap =
+        suspendCancellableCoroutine { cont ->
+
+            val inputImage = InputImage.fromBitmap(bitmap, 0)
+
+            faceMeshDetector.process(inputImage)
+                .addOnSuccessListener { meshes: List<FaceMesh> ->
+                    if (meshes.isEmpty()) {
+                        cont.resume(bitmap); return@addOnSuccessListener
+                    }
+
+                    val out = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+                    val canvas = Canvas(out)
+
+                    val pointPaint = Paint().apply {
+                        color = Color.GREEN
+                        style = Paint.Style.FILL
+                        isAntiAlias = true
+                    }
+
+                    // You can tune these
+                    val r = maxOf(1f, bitmap.width / 360f) // scale dot size with resolution
+
+                    for (mesh in meshes) {
+                        // FaceMesh provides points; we’ll draw dots for a nice “mesh” effect
+                        for (p: FaceMeshPoint in mesh.allPoints) {
+                            canvas.drawCircle(p.position.x, p.position.y, r, pointPaint)
+                        }
+                    }
+
+                    cont.resume(out)
+                }
+                .addOnFailureListener {
+                    cont.resume(bitmap)
+                }
+        }
+
 
     private val iceServer = listOf(
         IceServer.builder("turn:95.217.13.89:3478").setUsername("user")
@@ -113,6 +161,7 @@ class WebRTCFactory @Inject constructor(
     private var filterFaceDetect: Boolean = false
     private var filterBlurBackground: Boolean = false
     private var filterWatermark: Boolean = false
+    @Volatile private var filterFaceMesh: Boolean = false
 
 
     init {
@@ -135,7 +184,7 @@ class WebRTCFactory @Inject constructor(
             return
         }
 
-        val uri = android.net.Uri.parse(uriStr)
+        val uri = uriStr.toUri()
         val bmp = runCatching {
             application.contentResolver.openInputStream(uri).use { input ->
                 if (input != null) BitmapFactory.decodeStream(input) else null
@@ -146,10 +195,11 @@ class WebRTCFactory @Inject constructor(
     }
 
     fun reloadFiltersConfig() {
-        val cfg = com.codewithkael.webrtcwithai.utils.FilterStorage.load(application)
+        val cfg = FilterStorage.load(application)
         filterFaceDetect = cfg.faceDetect
         filterBlurBackground = cfg.blurBackground
         filterWatermark = cfg.watermark
+        filterFaceMesh = cfg.faceMesh
     }
 
 
@@ -231,7 +281,9 @@ class WebRTCFactory @Inject constructor(
                             )
                         }
 
-
+                        if (filterFaceMesh) {
+                            processed = detectFaceMeshInBitmapAwait(processed)
+                        }
 
                         val videoFrame =
                             BitmapToVideoFrameConverter.convert(processed, 0, System.nanoTime())

@@ -61,6 +61,7 @@ import com.codewithkael.webrtcwithai.ui.components.FilterTile
 import com.codewithkael.webrtcwithai.ui.components.LocationPicker
 import com.codewithkael.webrtcwithai.ui.components.SurfaceViewRendererComposable
 import com.codewithkael.webrtcwithai.ui.viewmodel.MainViewModel
+import com.codewithkael.webrtcwithai.utils.FilterStorage
 import com.codewithkael.webrtcwithai.utils.MyApplication
 import com.codewithkael.webrtcwithai.utils.WatermarkStorage
 import com.codewithkael.webrtcwithai.webrt.WebRTCFactory.WatermarkLocation
@@ -95,10 +96,11 @@ fun MainScreen() {
     var showFiltersDialog by remember { mutableStateOf(false) }
 
     val initialFilters =
-        remember { com.codewithkael.webrtcwithai.utils.FilterStorage.load(context) }
+        remember { FilterStorage.load(context) }
     var fltFace by remember { mutableStateOf(initialFilters.faceDetect) }
     var fltBlur by remember { mutableStateOf(initialFilters.blurBackground) }
     var fltWatermark by remember { mutableStateOf(initialFilters.watermark) }
+    var fltFaceMesh by remember { mutableStateOf(initialFilters.faceMesh) }
 
 
     // Permissions
@@ -157,10 +159,11 @@ fun MainScreen() {
                     DropdownMenuItem(text = { Text("Filters") }, onClick = {
                         menuExpanded = false
                         // refresh initial states each time you open
-                        val cfg = com.codewithkael.webrtcwithai.utils.FilterStorage.load(context)
+                        val cfg = FilterStorage.load(context)
                         fltFace = cfg.faceDetect
                         fltBlur = cfg.blurBackground
                         fltWatermark = cfg.watermark
+                        fltFaceMesh = cfg.faceMesh
                         showFiltersDialog = true
                     })
 
@@ -212,7 +215,7 @@ fun MainScreen() {
                     })
 
                 // Local video as Picture-in-Picture (bottom-right)
-                val pipWidthFraction = 0.22f // ~1/5 of screen width (recommended range: 0.20–0.28)
+                val pipWidthFraction = 0.42f // ~1/5 of screen width (recommended range: 0.20–0.28)
                 SurfaceViewRendererComposable(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -327,16 +330,28 @@ fun MainScreen() {
                             imageRes = R.drawable.ic_watermark_filter,
                             onToggle = { fltWatermark = it }
                         )
+                        FilterTile(
+                            title = "Face Mesh",
+                            subtitle = "468-point mesh overlay (ML Kit)",
+                            checked = fltFaceMesh,
+                            imageRes = R.drawable.ic_face_filter, // you can make a dedicated icon later
+                            onToggle = { enabled ->
+                                fltFaceMesh = enabled
+                                // Optional: avoid running 2 face pipelines together
+                                if (enabled) fltFace = false
+                            }
+                        )
                     }
                 },
                 confirmButton = {
                     Button(onClick = {
-                        com.codewithkael.webrtcwithai.utils.FilterStorage.save(
+                        FilterStorage.save(
                             context,
-                            com.codewithkael.webrtcwithai.utils.FilterStorage.Config(
+                            FilterStorage.Config(
                                 faceDetect = fltFace,
                                 blurBackground = fltBlur,
-                                watermark = fltWatermark
+                                watermark = fltWatermark,
+                                faceMesh = fltFaceMesh
                             )
                         )
                         viewModel.reloadFilters()     // apply instantly
