@@ -11,6 +11,9 @@ class FiltersUiState(initial: FilterStorage.Config) {
     var blurBackground by mutableStateOf(initial.blurBackground)
     var watermark by mutableStateOf(initial.watermark)
     var faceMesh by mutableStateOf(initial.faceMesh)
+    var imageLabeling by mutableStateOf(initial.imageLabeling)
+    var objectDetection by mutableStateOf(initial.objectDetection)
+    var poseDetection by mutableStateOf(initial.poseDetection)
 
     fun reloadFromStorage(context: Context) {
         val cfg = FilterStorage.load(context)
@@ -18,6 +21,8 @@ class FiltersUiState(initial: FilterStorage.Config) {
         blurBackground = cfg.blurBackground
         watermark = cfg.watermark
         faceMesh = cfg.faceMesh
+        imageLabeling = cfg.imageLabeling
+        poseDetection = cfg.poseDetection
     }
 }
 

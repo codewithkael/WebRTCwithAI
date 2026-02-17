@@ -6,14 +6,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.core.net.toUri
 import com.codewithkael.webrtcwithai.R
+import com.codewithkael.webrtcwithai.utils.MyApplication
 import com.codewithkael.webrtcwithai.utils.helpers.BitmapToVideoFrameConverter
 import com.codewithkael.webrtcwithai.utils.helpers.YuvFrame
-import com.codewithkael.webrtcwithai.utils.persistence.FilterStorage
-import com.codewithkael.webrtcwithai.utils.MyApplication
-import com.codewithkael.webrtcwithai.utils.persistence.WatermarkStorage
 import com.codewithkael.webrtcwithai.utils.imageProcessor.VideoEffectsPipeline
 import com.codewithkael.webrtcwithai.utils.imageProcessor.WatermarkLocation
 import com.codewithkael.webrtcwithai.utils.imageProcessor.toEffectLocation
+import com.codewithkael.webrtcwithai.utils.persistence.FilterStorage
+import com.codewithkael.webrtcwithai.utils.persistence.WatermarkStorage
 import com.codewithkael.webrtcwithai.webrt.IceServers.Companion.getIceServers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,20 +56,20 @@ class WebRTCFactory @Inject constructor(
     // ===== Effects pipeline =====
     private val effectsPipeline = VideoEffectsPipeline(application)
 
-    // ===== Config (reloaded from prefs) =====
+    // ===== Watermark config (reloaded from prefs) =====
     private var watermarkBitmap: Bitmap? = null
     private var watermarkLocation: WatermarkLocation = WatermarkLocation.TOP_LEFT
     private var watermarkMarginDp: Float = 12f
     private var watermarkSizeFraction: Float = 0.20f
 
-    @Volatile
-    private var filterFaceDetect: Boolean = false
-    @Volatile
-    private var filterBlurBackground: Boolean = false
-    @Volatile
-    private var filterWatermark: Boolean = false
-    @Volatile
-    private var filterFaceMesh: Boolean = false
+    // ===== Filters config (reloaded from prefs) =====
+    @Volatile private var filterFaceDetect: Boolean = false
+    @Volatile private var filterBlurBackground: Boolean = false
+    @Volatile private var filterWatermark: Boolean = false
+    @Volatile private var filterFaceMesh: Boolean = false
+    @Volatile private var filterObjectDetection: Boolean = false
+    @Volatile private var filterImageLabeling: Boolean = false
+    @Volatile private var filterPoseDetection: Boolean = false
 
     private val iceServer = getIceServers()
 
@@ -82,6 +82,7 @@ class WebRTCFactory @Inject constructor(
     // =========================
     // Public API
     // =========================
+
     fun prepareLocalStream(view: SurfaceViewRenderer) {
         initSurfaceView(view)
         startLocalVideo(view)
@@ -96,10 +97,12 @@ class WebRTCFactory @Inject constructor(
     }
 
     fun createRTCClient(
-        observer: PeerConnection.Observer, listener: RTCClientImpl.TransferDataToServerCallback
+        observer: PeerConnection.Observer,
+        listener: RTCClientImpl.TransferDataToServerCallback
     ): RTCClient? {
         val connection = peerConnectionFactory.createPeerConnection(
-            PeerConnection.RTCConfiguration(iceServer), observer
+            PeerConnection.RTCConfiguration(iceServer),
+            observer
         )
         localVideoTrack?.let { connection?.addTrack(it) }
         localAudioTrack?.let { connection?.addTrack(it) }
@@ -118,16 +121,18 @@ class WebRTCFactory @Inject constructor(
 
     fun reloadFiltersConfig() {
         val cfg = FilterStorage.load(application)
+
         filterFaceDetect = cfg.faceDetect
         filterBlurBackground = cfg.blurBackground
         filterWatermark = cfg.watermark
         filterFaceMesh = cfg.faceMesh
+        filterObjectDetection = cfg.objectDetection
+        filterImageLabeling = cfg.imageLabeling
+        filterPoseDetection = cfg.poseDetection
     }
 
     fun onDestroy() {
-        runCatching {
-            videoCapture?.stopCapture()
-        }
+        runCatching { videoCapture?.stopCapture() }
         runCatching { videoCapture?.dispose() }
         videoCapture = null
 
@@ -154,7 +159,9 @@ class WebRTCFactory @Inject constructor(
         videoCapture = getVideoCapture()
 
         videoCapture?.initialize(
-            surfaceTextureHelper, surface.context, object : CapturerObserver {
+            surfaceTextureHelper,
+            surface.context,
+            object : CapturerObserver {
                 override fun onCapturerStarted(success: Boolean) {}
                 override fun onCapturerStopped() {}
 
@@ -166,7 +173,9 @@ class WebRTCFactory @Inject constructor(
                         val processed = runEffects(bitmap)
 
                         val videoFrame = BitmapToVideoFrameConverter.convert(
-                            processed, 0, System.nanoTime()
+                            processed,
+                            0,
+                            System.nanoTime()
                         )
 
                         withContext(Dispatchers.Main) {
@@ -174,7 +183,8 @@ class WebRTCFactory @Inject constructor(
                         }
                     }
                 }
-            })
+            }
+        )
 
         videoCapture?.startCapture(720, 480, 10)
 
@@ -191,12 +201,17 @@ class WebRTCFactory @Inject constructor(
         val marginPx = watermarkMarginDp * density
 
         return effectsPipeline.process(
-            input = input, enabled = VideoEffectsPipeline.Enabled(
+            input = input,
+            enabled = VideoEffectsPipeline.Enabled(
                 faceDetect = filterFaceDetect,
                 blurBackground = filterBlurBackground,
                 watermark = filterWatermark,
-                faceMesh = filterFaceMesh
-            ), wm = VideoEffectsPipeline.WatermarkParams(
+                faceMesh = filterFaceMesh,
+                imageLabeling = filterImageLabeling,
+                objectDetection = filterObjectDetection,
+                poseDetection = filterPoseDetection
+            ),
+            wm = VideoEffectsPipeline.WatermarkParams(
                 bitmap = watermarkBitmap,
                 location = watermarkLocation.toEffectLocation(),
                 marginPx = marginPx,
@@ -207,7 +222,8 @@ class WebRTCFactory @Inject constructor(
 
     private fun getVideoCapture(): CameraVideoCapturer {
         return Camera2Enumerator(application).run {
-            deviceNames.find { isFrontFacing(it) }?.let { createCapturer(it, null) }
+            deviceNames.find { isFrontFacing(it) }
+                ?.let { createCapturer(it, null) }
                 ?: throw IllegalStateException("No front camera found")
         }
     }
@@ -218,8 +234,10 @@ class WebRTCFactory @Inject constructor(
 
     private fun initPeerConnectionFactory(application: Context) {
         val options = PeerConnectionFactory.InitializationOptions.builder(application)
-            .setEnableInternalTracer(true).setFieldTrials("WebRTC-H264HighProfile/Enabled/")
+            .setEnableInternalTracer(true)
+            .setFieldTrials("WebRTC-H264HighProfile/Enabled/")
             .createInitializationOptions()
+
         PeerConnectionFactory.initialize(options)
     }
 
@@ -231,8 +249,14 @@ class WebRTCFactory @Inject constructor(
                 PeerConnectionFactory.Options().apply {
                     disableEncryption = false
                     disableNetworkMonitor = false
-                }).createPeerConnectionFactory()
+                }
+            )
+            .createPeerConnectionFactory()
     }
+
+    // =========================
+    // Watermark bitmap loading
+    // =========================
 
     private fun loadBitmapFromUriOrDefault(uriStr: String?): Bitmap {
         if (uriStr.isNullOrBlank()) {

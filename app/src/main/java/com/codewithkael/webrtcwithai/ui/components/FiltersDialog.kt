@@ -1,9 +1,16 @@
 package com.codewithkael.webrtcwithai.ui.components
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.codewithkael.webrtcwithai.R
 import com.codewithkael.webrtcwithai.ui.states.FiltersUiState
@@ -15,12 +22,18 @@ fun FiltersDialog(
     onCancel: () -> Unit,
     onSave: (FilterStorage.Config) -> Unit
 ) {
+    val scroll = rememberScrollState()
+
     AlertDialog(
         onDismissRequest = onCancel,
         title = { Text("Filters") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(scroll),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 FilterTile(
                     title = "Face Detect",
                     subtitle = "Draw face oval (ML Kit)",
@@ -50,9 +63,31 @@ fun FiltersDialog(
                     subtitle = "468-point mesh overlay (ML Kit)",
                     checked = state.faceMesh,
                     imageRes = R.drawable.ic_face_filter,
-                    onToggle = { enabled ->
-                        state.faceMesh = enabled
-                    }
+                    onToggle = { state.faceMesh = it }
+                )
+
+                FilterTile(
+                    title = "Image Labeling",
+                    subtitle = "Scene labels (ML Kit)",
+                    checked = state.imageLabeling,
+                    imageRes = R.drawable.ic_face_filter,
+                    onToggle = { state.imageLabeling = it }
+                )
+
+                FilterTile(
+                    title = "Object Detection",
+                    subtitle = "Boxes + labels (ML Kit)",
+                    checked = state.objectDetection,
+                    imageRes = R.drawable.ic_face_filter,
+                    onToggle = { state.objectDetection = it }
+                )
+
+                FilterTile(
+                    title = "Pose Detection",
+                    subtitle = "Skeleton + landmarks (ML Kit)",
+                    checked = state.poseDetection,
+                    imageRes = R.drawable.ic_face_filter,
+                    onToggle = { state.poseDetection = it }
                 )
             }
         },
@@ -63,7 +98,10 @@ fun FiltersDialog(
                         faceDetect = state.faceDetect,
                         blurBackground = state.blurBackground,
                         watermark = state.watermark,
-                        faceMesh = state.faceMesh
+                        faceMesh = state.faceMesh,
+                        objectDetection = state.objectDetection,
+                        imageLabeling = state.imageLabeling,
+                        poseDetection = state.poseDetection
                     )
                 )
             }) { Text("OK") }

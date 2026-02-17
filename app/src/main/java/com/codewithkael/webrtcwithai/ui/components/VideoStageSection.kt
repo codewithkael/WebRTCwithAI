@@ -40,7 +40,7 @@ fun VideoStageSection(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(12.dp)
-                .fillMaxWidth(0.42f)
+                .fillMaxWidth(0.62f)
                 .aspectRatio(3f / 4f)
                 .shadow(12.dp, RoundedCornerShape(14.dp))
                 .background(Color.Black, RoundedCornerShape(14.dp))

@@ -9,12 +9,18 @@ object FilterStorage {
     private const val KEY_BLUR = "flt_blur"
     private const val KEY_WATERMARK = "flt_watermark"
     private const val KEY_FACE_MESH = "flt_face_mesh"
+    private const val KEY_IMAGE_LABELING = "flt_image_labeling"
+    private const val KEY_OBJECT_DETECTION = "flt_object_detection"
+    private const val KEY_POSE_DETECTION = "flt_pose_detection"
 
     data class Config(
         val faceDetect: Boolean,
         val blurBackground: Boolean,
         val watermark: Boolean,
-        val faceMesh: Boolean
+        val faceMesh: Boolean,
+        val imageLabeling: Boolean,
+        val objectDetection: Boolean,
+        val poseDetection: Boolean,
     )
 
     fun load(ctx: Context): Config {
@@ -23,17 +29,21 @@ object FilterStorage {
             faceDetect = sp.getBoolean(KEY_FACE, true),
             blurBackground = sp.getBoolean(KEY_BLUR, true),
             watermark = sp.getBoolean(KEY_WATERMARK, true),
-            faceMesh = sp.getBoolean(KEY_FACE_MESH, false)
+            faceMesh = sp.getBoolean(KEY_FACE_MESH, false),
+            imageLabeling = sp.getBoolean(KEY_IMAGE_LABELING, false),
+            objectDetection = sp.getBoolean(KEY_OBJECT_DETECTION, false),
+            poseDetection = sp.getBoolean(KEY_POSE_DETECTION, false)
         )
     }
 
     fun save(ctx: Context, cfg: Config) {
-        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-            .edit {
-                putBoolean(KEY_FACE, cfg.faceDetect)
-                    .putBoolean(KEY_BLUR, cfg.blurBackground)
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit {
+                putBoolean(KEY_FACE, cfg.faceDetect).putBoolean(KEY_BLUR, cfg.blurBackground)
                     .putBoolean(KEY_WATERMARK, cfg.watermark)
                     .putBoolean(KEY_FACE_MESH, cfg.faceMesh)
+                    .putBoolean(KEY_IMAGE_LABELING, cfg.imageLabeling)
+                    .putBoolean(KEY_OBJECT_DETECTION, cfg.objectDetection)
+                    .putBoolean(KEY_POSE_DETECTION, cfg.poseDetection)
             }
     }
 }

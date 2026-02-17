@@ -13,13 +13,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.codewithkael.webrtcwithai.ui.components.*
+import com.codewithkael.webrtcwithai.ui.components.CallControlsSection
+import com.codewithkael.webrtcwithai.ui.components.FiltersDialog
+import com.codewithkael.webrtcwithai.ui.components.FooterSection
+import com.codewithkael.webrtcwithai.ui.components.TopBarSection
+import com.codewithkael.webrtcwithai.ui.components.VideoStageSection
+import com.codewithkael.webrtcwithai.ui.components.WatermarkDialog
 import com.codewithkael.webrtcwithai.ui.states.rememberFiltersUiState
 import com.codewithkael.webrtcwithai.ui.states.rememberWatermarkUiState
 import com.codewithkael.webrtcwithai.ui.viewmodel.MainViewModel
@@ -81,12 +90,13 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFEAEAEA))
+            .padding(top = 14.dp)
     ) {
 
         TopBarSection(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(0.8f),
             onOpenWatermark = { watermarkState.showDialog = true },
             onOpenFilters = {
                 filtersState.reloadFromStorage(context)
@@ -101,6 +111,7 @@ fun MainScreen() {
             onCall = { viewModel.sendStartCallSignal(it) }
         )
 
+        // Always reserves 5f, whether in call or not
         Box(
             modifier = Modifier
                 .fillMaxWidth()

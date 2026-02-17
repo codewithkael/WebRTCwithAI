@@ -74,6 +74,10 @@ dependencies {
         implementation(libs.mlkit.vision.interfaces)
         implementation(libs.mlkit.mediapipe.internal)
     }
+    implementation(libs.mlkit.image.labeling)
+    implementation(libs.mlkit.objects.detection)
+    implementation(libs.mlkit.pose.detection)
+
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)

@@ -39,35 +39,39 @@ fun FilterTile(
                 color = if (checked) Color(0xFFE8F0FE) else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             )
-            .padding(10.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp), // smaller
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(96.dp)
+            modifier = Modifier.width(82.dp) // smaller
         ) {
-            // “image”
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(56.dp) // smaller icon box
                     .background(Color(0xFFF2F2F2), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = imageRes),
                     contentDescription = title,
-                    modifier = Modifier.size(38.dp)
+                    modifier = Modifier.size(30.dp) // smaller icon
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(title, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
         }
 
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(title, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 2)
         }
 
         Switch(

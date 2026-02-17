@@ -27,6 +27,9 @@ mlkit_common = "18.11.0"
 mlkit_vision_common = "17.3.0"
 mlkit_vision_interfaces = "16.3.0"
 mlkit_mediapipe_internal = "17.0.0-beta10"
+mlkit_image_labeling = "17.0.9"
+mlkit-object-detection = "17.0.2"
+mlkit_pose = "18.0.0-beta5"
 
 
 [libraries]
@@ -63,6 +66,9 @@ mlkit-common = { module = "com.google.mlkit:common", version.ref = "mlkit_common
 mlkit-vision-common = { module = "com.google.mlkit:vision-common", version.ref = "mlkit_vision_common" }
 mlkit-vision-interfaces = { module = "com.google.mlkit:vision-interfaces", version.ref = "mlkit_vision_interfaces" }
 mlkit-mediapipe-internal = { module = "com.google.mlkit:mediapipe-internal", version.ref = "mlkit_mediapipe_internal" }
+mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkit_image_labeling" }
+mlkit-objects-detection = { module = "com.google.mlkit:object-detection", version.ref = "mlkit-object-detection" }
+mlkit-pose-detection = { module = "com.google.mlkit:pose-detection", version.ref = "mlkit_pose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
