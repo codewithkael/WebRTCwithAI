@@ -101,7 +101,8 @@ fun MainScreen() {
             onOpenFilters = {
                 filtersState.reloadFromStorage(context)
                 filtersState.showDialog = true
-            }
+            },
+            switchCamera = { viewModel.switchCamera() }
         )
 
         CallControlsSection(

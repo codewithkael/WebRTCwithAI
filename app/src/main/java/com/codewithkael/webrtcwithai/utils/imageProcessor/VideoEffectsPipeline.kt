@@ -13,6 +13,8 @@ class VideoEffectsPipeline(context: Context) {
     private val imageLabeling = ImageLabelingEffect()
     private val objectDetection = ObjectDetectionEffect()
     private val poseDetection = PoseDetectionEffect()
+    private val textRecognition = TextRecognitionEffect()
+
 
     data class Enabled(
         val faceDetect: Boolean,
@@ -21,7 +23,8 @@ class VideoEffectsPipeline(context: Context) {
         val faceMesh: Boolean,
         val imageLabeling: Boolean,
         val objectDetection: Boolean,
-        val poseDetection: Boolean
+        val poseDetection: Boolean,
+        val textRecognition: Boolean,
     )
 
     data class WatermarkParams(
@@ -45,6 +48,7 @@ class VideoEffectsPipeline(context: Context) {
         if (enabled.poseDetection) out = poseDetection.apply(out)
         if (enabled.objectDetection) out = objectDetection.apply(out)
         if (enabled.imageLabeling) out = imageLabeling.apply(out)
+        if (enabled.textRecognition) out = textRecognition.apply(out)
 
         if (enabled.watermark) {
             out = watermark.apply(
@@ -68,5 +72,6 @@ class VideoEffectsPipeline(context: Context) {
         imageLabeling.close()
         objectDetection.close()
         poseDetection.close()
+        textRecognition.close()
     }
 }

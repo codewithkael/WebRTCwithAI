@@ -14,6 +14,7 @@ class FiltersUiState(initial: FilterStorage.Config) {
     var imageLabeling by mutableStateOf(initial.imageLabeling)
     var objectDetection by mutableStateOf(initial.objectDetection)
     var poseDetection by mutableStateOf(initial.poseDetection)
+    var textRecognition by mutableStateOf(initial.textRecognition)
 
     fun reloadFromStorage(context: Context) {
         val cfg = FilterStorage.load(context)
@@ -23,6 +24,7 @@ class FiltersUiState(initial: FilterStorage.Config) {
         faceMesh = cfg.faceMesh
         imageLabeling = cfg.imageLabeling
         poseDetection = cfg.poseDetection
+        textRecognition = cfg.textRecognition
     }
 }
 

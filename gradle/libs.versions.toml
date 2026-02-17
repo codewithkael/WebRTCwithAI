@@ -30,7 +30,7 @@ mlkit_mediapipe_internal = "17.0.0-beta10"
 mlkit_image_labeling = "17.0.9"
 mlkit-object-detection = "17.0.2"
 mlkit_pose = "18.0.0-beta5"
-
+mlkit_text_recognition = "16.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -69,6 +69,7 @@ mlkit-mediapipe-internal = { module = "com.google.mlkit:mediapipe-internal", ver
 mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkit_image_labeling" }
 mlkit-objects-detection = { module = "com.google.mlkit:object-detection", version.ref = "mlkit-object-detection" }
 mlkit-pose-detection = { module = "com.google.mlkit:pose-detection", version.ref = "mlkit_pose" }
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkit_text_recognition" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

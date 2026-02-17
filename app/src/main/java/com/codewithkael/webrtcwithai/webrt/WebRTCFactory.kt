@@ -70,6 +70,8 @@ class WebRTCFactory @Inject constructor(
     @Volatile private var filterObjectDetection: Boolean = false
     @Volatile private var filterImageLabeling: Boolean = false
     @Volatile private var filterPoseDetection: Boolean = false
+    @Volatile private var filterTextRecognition: Boolean = false
+
 
     private val iceServer = getIceServers()
 
@@ -129,6 +131,8 @@ class WebRTCFactory @Inject constructor(
         filterObjectDetection = cfg.objectDetection
         filterImageLabeling = cfg.imageLabeling
         filterPoseDetection = cfg.poseDetection
+        filterTextRecognition = cfg.textRecognition
+
     }
 
     fun onDestroy() {
@@ -156,7 +160,7 @@ class WebRTCFactory @Inject constructor(
         val surfaceTextureHelper =
             SurfaceTextureHelper.create(Thread.currentThread().name, eglBaseContext)
 
-        videoCapture = getVideoCapture()
+        videoCapture = getVideoCapture(true)
 
         videoCapture?.initialize(
             surfaceTextureHelper,
@@ -209,7 +213,8 @@ class WebRTCFactory @Inject constructor(
                 faceMesh = filterFaceMesh,
                 imageLabeling = filterImageLabeling,
                 objectDetection = filterObjectDetection,
-                poseDetection = filterPoseDetection
+                poseDetection = filterPoseDetection,
+                textRecognition = filterTextRecognition
             ),
             wm = VideoEffectsPipeline.WatermarkParams(
                 bitmap = watermarkBitmap,
@@ -220,13 +225,21 @@ class WebRTCFactory @Inject constructor(
         )
     }
 
-    private fun getVideoCapture(): CameraVideoCapturer {
-        return Camera2Enumerator(application).run {
-            deviceNames.find { isFrontFacing(it) }
-                ?.let { createCapturer(it, null) }
-                ?: throw IllegalStateException("No front camera found")
-        }
+    fun switchCamera(){
+        val capturer = videoCapture ?: return
+        (capturer as? CameraVideoCapturer)?.switchCamera(null)
     }
+
+    private fun getVideoCapture(front: Boolean): CameraVideoCapturer {
+        val enumerator = Camera2Enumerator(application)
+        val deviceName = enumerator.deviceNames.firstOrNull { name ->
+            if (front) enumerator.isFrontFacing(name) else enumerator.isBackFacing(name)
+        } ?: throw IllegalStateException("No camera found for front=$front")
+
+        return enumerator.createCapturer(deviceName, null)
+            ?: throw IllegalStateException("Failed to create capturer for $deviceName")
+    }
+
 
     // =========================
     // PeerConnectionFactory

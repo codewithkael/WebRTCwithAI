@@ -217,6 +217,7 @@ class MainViewModel @Inject constructor(
     fun reloadFilters() {
         webRTCFactory.reloadFiltersConfig()
     }
+    fun switchCamera () = webRTCFactory.switchCamera()
 
 
     override fun onCleared() {

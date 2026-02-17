@@ -89,6 +89,14 @@ fun FiltersDialog(
                     imageRes = R.drawable.ic_face_filter,
                     onToggle = { state.poseDetection = it }
                 )
+
+                FilterTile(
+                    title = "Text Recognition (OCR)",
+                    subtitle = "Detect & draw text (ML Kit v2)",
+                    checked = state.textRecognition,
+                    imageRes = R.drawable.ic_face_filter, // replace later
+                    onToggle = { state.textRecognition = it }
+                )
             }
         },
         confirmButton = {
@@ -101,7 +109,8 @@ fun FiltersDialog(
                         faceMesh = state.faceMesh,
                         objectDetection = state.objectDetection,
                         imageLabeling = state.imageLabeling,
-                        poseDetection = state.poseDetection
+                        poseDetection = state.poseDetection,
+                        textRecognition = state.textRecognition
                     )
                 )
             }) { Text("OK") }

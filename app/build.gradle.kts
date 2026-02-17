@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.mlkit.image.labeling)
     implementation(libs.mlkit.objects.detection)
     implementation(libs.mlkit.pose.detection)
+    implementation(libs.mlkit.text.recognition)
 
     // Firebase
     implementation(platform(libs.firebase.bom))

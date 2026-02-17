@@ -15,6 +15,7 @@ import com.codewithkael.webrtcwithai.utils.MyApplication
 fun TopBarSection(
     modifier: Modifier = Modifier,
     onOpenWatermark: () -> Unit,
+    switchCamera: () -> Unit,
     onOpenFilters: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -39,6 +40,13 @@ fun TopBarSection(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false }
             ) {
+                DropdownMenuItem(
+                    text = { Text("Switch Camera") },
+                    onClick = {
+                        menuExpanded = false
+                        switchCamera()
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text("Watermark settings") },
                     onClick = {

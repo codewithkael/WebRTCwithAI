@@ -12,6 +12,7 @@ object FilterStorage {
     private const val KEY_IMAGE_LABELING = "flt_image_labeling"
     private const val KEY_OBJECT_DETECTION = "flt_object_detection"
     private const val KEY_POSE_DETECTION = "flt_pose_detection"
+    private const val KEY_TEXT_RECOGNITION = "flt_text_recognition"
 
     data class Config(
         val faceDetect: Boolean,
@@ -21,6 +22,7 @@ object FilterStorage {
         val imageLabeling: Boolean,
         val objectDetection: Boolean,
         val poseDetection: Boolean,
+        val textRecognition: Boolean
     )
 
     fun load(ctx: Context): Config {
@@ -32,7 +34,8 @@ object FilterStorage {
             faceMesh = sp.getBoolean(KEY_FACE_MESH, false),
             imageLabeling = sp.getBoolean(KEY_IMAGE_LABELING, false),
             objectDetection = sp.getBoolean(KEY_OBJECT_DETECTION, false),
-            poseDetection = sp.getBoolean(KEY_POSE_DETECTION, false)
+            poseDetection = sp.getBoolean(KEY_POSE_DETECTION, false),
+            textRecognition = sp.getBoolean(KEY_TEXT_RECOGNITION, false)
         )
     }
 
@@ -44,6 +47,7 @@ object FilterStorage {
                     .putBoolean(KEY_IMAGE_LABELING, cfg.imageLabeling)
                     .putBoolean(KEY_OBJECT_DETECTION, cfg.objectDetection)
                     .putBoolean(KEY_POSE_DETECTION, cfg.poseDetection)
+                    .putBoolean(KEY_TEXT_RECOGNITION, cfg.textRecognition)
             }
     }
 }
